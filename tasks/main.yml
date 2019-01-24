@@ -1,0 +1,85 @@
+---
+
+- import_tasks: preflight.yml
+  tags:
+    - oracle_download_patches_preflight
+    - always
+
+- name: create directories (1)
+  file:
+    path: "{{ item }}"
+    state: directory
+  with_items:
+    - "{{ oracle_download_patches_getmospatch_directory }}"
+  loop_control:
+    label: "[directory: {{ item }}]"
+  tags:
+    - oracle_download_patches_directories
+
+- name: create stage directory
+  file:
+    path: "{{ oracle_download_patches_stage_directory }}"
+    state: directory
+  when: oracle_download_patches_create_stage_directory
+  tags:
+    - oracle_download_patches_directories
+    - oracle_download_patches_create_stage_directory
+
+- name: copy getMOSPatch.sh
+  copy:
+    src: getMOSPatch.sh
+    dest: "{{ oracle_download_patches_getmospatch_directory }}/getMOSPatch.sh"
+    mode: 0755
+  tags:
+    - oracle_download_patches_copy_getmospatch
+
+- name: create platform and language settings config
+  shell: |
+    echo "{{ oracle_download_patches_platform_map[item] }};{{ item }}" >> {{ oracle_download_patches_getmospatch_directory }}/.getMOSPatch.sh.cfg
+  with_items:
+    - "{{ oracle_download_patches_platforms }}"
+  loop_control:
+    label: "[platform: {{ item }}]"
+  tags:
+    - oracle_download_patches_getmospatch_config
+
+- name: start downloading the patches
+  debug:
+    msg: "Downloading files to {{ oracle_download_patches_stage_directory }}"
+  tags:
+    - oracle_download_patches_start_download_message
+
+- name: download the patches
+  shell: |
+    cd {{ oracle_download_patches_stage_directory }}
+    {{ oracle_download_patches_getmospatch_directory }}/getMOSPatch.sh patch={{ oracle_download_patches_list|join(',') }} download=all {% if oracle_download_patches_regexp|default('') != '' %}regexp={{ oracle_download_patches_regexp }}{% else %}{% endif %}
+  register: _oracle_download_patches_download_shell
+  ignore_errors: yes
+  no_log: true
+  environment:
+    mosUser: '{{ oracle_download_patches_mos_user }}'
+    mosPass: '{{ oracle_download_patches_mos_pass }}'
+  tags:
+    - oracle_download_patches_download
+
+- name: display getMOSPatch.sh ouptut
+  debug: var=_oracle_download_patches_download_shell.stdout_lines|default([])
+  when: (oracle_download_patches_display_getmospatch_output and _oracle_download_patches_download_shell is defined) or (_oracle_download_patches_download_shell is defined and _oracle_download_patches_download_shell.rc != 0)
+  tags:
+    - oracle_download_patches_display_getmospatch_output
+
+- name: cleanup - remove getMOSPatch.sh
+  file:
+    path: "{{ oracle_download_patches_getmospatch_directory }}"
+    state: absent
+  tags:
+    - oracle_download_patches_cleanup
+
+- name: display error message in case of failure
+  fail:
+    msg: "getMOSPatch.sh failed. See the output above."
+  when: not ansible_check_mode and _oracle_download_patches_download_shell is defined and _oracle_download_patches_download_shell.rc != 0
+  tags:
+    - oracle_download_patches_error_message
+
+

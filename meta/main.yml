@@ -1,0 +1,25 @@
+galaxy_info:
+  author: Krzysztof Lewandowski
+  description: Download patches from My Oracle Support directly to the server
+
+  license: GPLv3
+
+  min_ansible_version: 2.7
+
+  platforms:
+  - name: EL
+    versions:
+    - 6
+    - 7
+
+  galaxy_tags:
+  - oracle
+  - databases
+  - grid
+  - patches
+  - patching
+  - download
+  - My Oracle Support
+
+dependencies: []
+

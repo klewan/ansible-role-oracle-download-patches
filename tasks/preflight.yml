@@ -1,0 +1,37 @@
+---
+
+#- name: Fail on unsupported system architectures
+#  assert:
+#    that:
+#      - "ansible_system == 'Linux'"
+#      - "ansible_architecture in ['x86_64', 'x86']"
+#    fail_msg: "Currently only Linux (x86, x86_64) is supported"
+#  tags:
+#    - oracle_download_patches_oscheck
+
+- name: Check My Oracle Support credentials
+  assert:
+    that:
+      - "oracle_download_patches_mos_user is defined and oracle_download_patches_mos_user|default('',true) != ''"
+      - "oracle_download_patches_mos_pass is defined and oracle_download_patches_mos_pass|default('',true) != ''"
+    fail_msg: "Please provide MOS user credentials (oracle_download_patches_mos_user and oracle_download_patches_mos_pass)"
+  tags:
+    - oracle_download_patches_mos_credentials_check
+
+- name: Check patches list
+  assert:
+    that:
+      - "oracle_download_patches_list|default([])|length > 0"
+    fail_msg: "List of patches to download (oracle_download_patches_list) is empty"
+  tags:
+    - oracle_download_patches_patches_list_check
+
+- name: Check directory paths
+  assert:
+    that:
+      - "oracle_download_patches_stage_directory is defined and oracle_download_patches_stage_directory|default('',true) != ''"
+      - "oracle_download_patches_getmospatch_directory is defined and oracle_download_patches_getmospatch_directory|default('',true) != ''"
+    fail_msg: "Directories (oracle_download_patches_stage_directory, oracle_download_patches_getmospatch_directory) cannot be empty"
+  tags:
+    - oracle_download_patches_directory_check
+
